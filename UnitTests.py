@@ -38,18 +38,18 @@ class TestDatabase(unittest.TestCase):
     def test_get_save_data(self):
         doc = TDocument(url="doc1", pub_date=100, fetch_time=150, text="Version 1")
         save = get_save_data(doc.url + str(doc.fetch_time), doc.get_instance_attributes_dict())
-        self.assertEqual(save, ["doc1" + "150", "doc1", 100, 150, "Version 1", None])
+        self.assertEqual(save, ["doc1"+"150","doc1",100,150,"Version 1", None])
 
     def test_get_instance_attributes_dict(self):
-        doc = TDocument(url="doc1", pub_date=100, fetch_time=150, text="Version 1")
-        attrs = doc.get_instance_attributes_dict()
-        real_attrs = {"url": "doc1", "pub_date": 100, "fetch_time": 150, "text": "Version 1", "first_fetch_time": None}
-        self.assertEqual(attrs, real_attrs)
+      doc = TDocument(url="doc1", pub_date=100, fetch_time=150, text="Version 1")
+      attrs = doc.get_instance_attributes_dict()
+      real_attrs = {"url":"doc1", "pub_date":100, "fetch_time":150, "text":"Version 1", "first_fetch_time":None}
+      self.assertEqual(attrs, real_attrs)
 
-        doc = TDocument(url="doc1", pub_date=100, fetch_time=150, text="Version 1", first_fetch_time=90)
-        attrs = doc.get_instance_attributes_dict()
-        real_attrs = {"url": "doc1", "pub_date": 100, "fetch_time": 150, "text": "Version 1", "first_fetch_time": 90}
-        self.assertEqual(attrs, real_attrs)
+      doc = TDocument(url="doc1", pub_date=100, fetch_time=150, text="Version 1", first_fetch_time=90)
+      attrs = doc.get_instance_attributes_dict()
+      real_attrs = {"url":"doc1", "pub_date":100, "fetch_time":150, "text":"Version 1", "first_fetch_time":90}
+      self.assertEqual(attrs, real_attrs)
 
     def test_is_exist(self):
         doc = TDocument(url="doc12", pub_date=100, fetch_time=150, text="Version 1")
@@ -60,25 +60,26 @@ class TestDatabase(unittest.TestCase):
         is_exist = self.db.is_exist(save[0])
         self.assertEqual(is_exist, True)
 
+
     def test_processor(self):
         processor = Processor()
 
         docs = [
-            TDocument(url="doc1", pub_date=100, fetch_time=150, text="Version 1"),
-            TDocument(url="doc1", pub_date=90, fetch_time=140, text="Version 2"),
-            TDocument(url="doc1", pub_date=110, fetch_time=160, text="Version 3"),
-            TDocument(url="doc1", pub_date=110, fetch_time=160, text="Version 3"),
-            TDocument(url="doc1", pub_date=70, fetch_time=170, text="Version 4"),
-            TDocument(url="doc2", pub_date=90, fetch_time=150, text="Version 1"),
-            TDocument(url="doc2", pub_date=70, fetch_time=170, text="Version 2"),
-            TDocument(url="doc3", pub_date=110, fetch_time=160, text="Version 1"),
+        TDocument(url="doc1", pub_date=100, fetch_time=150, text="Version 1"),
+        TDocument(url="doc1", pub_date=90, fetch_time=140, text="Version 2"),
+        TDocument(url="doc1", pub_date=110, fetch_time=160, text="Version 3"),
+        TDocument(url="doc1", pub_date=110, fetch_time=160, text="Version 3"),
+        TDocument(url="doc1", pub_date=70, fetch_time=170, text="Version 4"),
+        TDocument(url="doc2", pub_date=90, fetch_time=150, text="Version 1"),
+        TDocument(url="doc2", pub_date=70, fetch_time=170, text="Version 2"),
+        TDocument(url="doc3", pub_date=110, fetch_time=160, text="Version 1"),
         ]
 
         for doc in docs:
             updated_doc = processor.process(doc)
             save = get_save_data(doc.url + str(doc.fetch_time), updated_doc.get_instance_attributes_dict())
             self.db.insert(save)
-            # print(f"Processed Document: {updated_doc}")
+            #print(f"Processed Document: {updated_doc}")
 
         self.db.commit()
 
@@ -86,7 +87,7 @@ class TestDatabase(unittest.TestCase):
         rows = self.db.cursor.fetchall()
         self.assertEqual(len(rows), 4)
         self.assertEqual(rows[2][3], 160)
-
+      
     def test_empty_url(self):
         with self.assertRaises(ValueError) as context:
             self.processor.process(TDocument(url="", pub_date=100, fetch_time=150, text="Version 1"))
@@ -97,27 +98,64 @@ class TestDatabase(unittest.TestCase):
             self.processor.process(TDocument(url=123, pub_date=100, fetch_time=150, text="Version 1"))
         self.assertEqual(str(context.exception), "Document URL must be str")
 
+
+
+    def test_empty_pub_date(self):
+        with self.assertRaises(ValueError) as context:
+            self.processor.process(TDocument(url="doc1", pub_date="", fetch_time=150, text="Version 1"))
+        self.assertEqual(str(context.exception), "Document publish date cannot be empty")
+
+        with self.assertRaises(ValueError) as context:
+            self.processor.process(TDocument(url="doc1", pub_date=None, fetch_time=150, text="Version 1"))
+        self.assertEqual(str(context.exception), "Document publish date cannot be empty")
+
     def test_invalid_pub_date_type(self):
         with self.assertRaises(ValueError) as context:
             self.processor.process(TDocument(url="doc1", pub_date="invalid", fetch_time=150, text="Version 1"))
         self.assertEqual(str(context.exception), "Document publish date must be int")
+
+
+    def test_empty_fetch_time(self):
+        with self.assertRaises(ValueError) as context:
+            self.processor.process(TDocument(url="doc1", pub_date=100, fetch_time="", text="Version 1"))
+        self.assertEqual(str(context.exception), "Document fetching time cannot be empty")
+        with self.assertRaises(ValueError) as context:
+            self.processor.process(TDocument(url="doc1", pub_date=100, fetch_time=None, text="Version 1"))
+        self.assertEqual(str(context.exception), "Document fetching time cannot be empty")
 
     def test_invalid_fetch_time_type(self):
         with self.assertRaises(ValueError) as context:
             self.processor.process(TDocument(url="doc1", pub_date=100, fetch_time="invalid", text="Version 1"))
         self.assertEqual(str(context.exception), "Document fetching time should be int")
 
+
+
+    def test_empty_text(self):
+        with self.assertRaises(ValueError) as context:
+            self.processor.process(TDocument(url="doc1", pub_date=100, fetch_time=150, text=None))
+        self.assertEqual(str(context.exception), "Document text cannot be empty")
+
     def test_invalid_text_type(self):
         with self.assertRaises(ValueError) as context:
             self.processor.process(TDocument(url="doc1", pub_date=100, fetch_time=150, text=123))
         self.assertEqual(str(context.exception), "Document text should be str")
+        with self.assertRaises(ValueError) as context:
+            self.processor.process(TDocument(url="doc1", pub_date=100, fetch_time=150, text=3.14))
+        self.assertEqual(str(context.exception), "Document text should be str")
+
+
+
+    def test_empty_first_fetch_time(self):
+      with self.assertRaises(ValueError) as context:
+          self.processor.process(TDocument(url="doc1", pub_date=100, fetch_time=150, text="Version 1", first_fetch_time=""))
+      self.assertEqual(str(context.exception), "Document first fetching time should be int or None")
 
     def test_invalid_first_fetch_time_type(self):
         with self.assertRaises(ValueError) as context:
-            self.processor.process(
-                TDocument(url="doc1", pub_date=100, fetch_time=150, text="Version 1", first_fetch_time="invalid"))
+            self.processor.process(TDocument(url="doc1", pub_date=100, fetch_time=150, text="Version 1", first_fetch_time="invalid"))
         self.assertEqual(str(context.exception), "Document first fetching time should be int or None")
 
+    
 
 if __name__ == '__main__':
     unittest.main(argv=[''], exit=False)
