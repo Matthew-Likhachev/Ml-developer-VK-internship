@@ -1,7 +1,6 @@
 from typing import Dict
 from DB import DB
 
-
 class TDocument:
   def __init__(self, url: str, pub_date: int, fetch_time: int, text: str, first_fetch_time: int = None):
       self.url = url
@@ -37,9 +36,10 @@ class Processor:
             raise ValueError("Document fetching time should be int")
         if not isinstance(document.text, str):
             raise ValueError("Document text should be str")
-        if document.first_fetch_time is not None:
+        if (document.first_fetch_time is not None) and (not isinstance(document.first_fetch_time, int)):
             raise ValueError("Document first fetching time should be int or None")
             
+        
         existing_doc = self.documents.get(document.url)
 
         if not existing_doc:
@@ -74,6 +74,13 @@ if __name__ == "__main__":
         TDocument(url="doc1", pub_date=100, fetch_time=150, text="Version 1"),
         TDocument(url="doc1", pub_date=90, fetch_time=140, text="Version 2"),
         TDocument(url="doc1", pub_date=110, fetch_time=160, text="Version 3"),
+        TDocument(url="doc1", pub_date=110, fetch_time=160, text="Version 3"),
+        TDocument(url="doc1", pub_date=70, fetch_time=170, text="Version 4"),
+
+
+        TDocument(url="doc2", pub_date=90, fetch_time=150, text="Version 1"),
+        TDocument(url="doc2", pub_date=70, fetch_time=170, text="Version 2"),
+        TDocument(url="doc3", pub_date=110, fetch_time=160, text="Version 1"),
     ]
 
     for doc in docs:
@@ -87,3 +94,4 @@ if __name__ == "__main__":
     db.commit()
     db.select_everything()
     db.close()
+
