@@ -1,0 +1,62 @@
+from typing import Dict
+from DB import DB
+
+class TDocument:
+    def __init__(self, url: str, pub_date: int, fetch_time: int, text: str, first_fetch_time: int = None):
+        self.url = url
+        self.pub_date = pub_date
+        self.fetch_time = fetch_time
+        self.text = text
+        self.first_fetch_time = first_fetch_time
+
+    def __repr__(self):
+        return f"TDocument(url={self.url}, pub_date={self.pub_date}, fetch_time={self.fetch_time}, text={self.text}, first_fetch_time={self.first_fetch_time})"
+
+class Processor:
+    def __init__(self):
+        self.documents: Dict[str, TDocument] = {}
+
+    def process(self, document: TDocument) -> TDocument:
+        if not document.url:
+            raise ValueError("Document URL cannot be empty")
+
+        existing_doc = self.documents.get(document.url)
+
+        if not existing_doc:
+            # Первый документ для данного URL
+            document.first_fetch_time = document.fetch_time
+            self.documents[document.url] = document
+            return document
+
+        # Обновление полей на основе FetchTime
+        if document.fetch_time > existing_doc.fetch_time:
+            existing_doc.text = document.text
+            existing_doc.fetch_time = document.fetch_time
+        if document.fetch_time < existing_doc.first_fetch_time:
+            existing_doc.first_fetch_time = document.fetch_time
+        if document.fetch_time < existing_doc.fetch_time:
+            existing_doc.pub_date = document.pub_date
+
+        return existing_doc
+
+# Пример использования
+if __name__ == "__main__":
+    processor = Processor()
+    db = DB("test")
+
+    docs = [
+        TDocument(url="doc1", pub_date=100, fetch_time=150, text="Version 1"),
+        TDocument(url="doc1", pub_date=90, fetch_time=140, text="Version 2"),
+        TDocument(url="doc1", pub_date=110, fetch_time=160, text="Version 3"),
+    ]
+
+    for doc in docs:
+        updated_doc = processor.process(doc)
+        db.insert([updated_doc.url, updated_doc.pub_date, updated_doc.fetch_time, updated_doc.text, updated_doc.first_fetch_time])
+              # print(f"Данные записаны")
+
+        print(f"Processed Document: {updated_doc}")
+    db.commit()
+    
+    db.select_everything()
+    db.close()
