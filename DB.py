@@ -1,27 +1,36 @@
 import sqlite3
+#cписок имен колонн Базы Данных и их тип данных
+#Можно также заменить на формат "тип данных":"название колонки". Для удобочитаемости не стал так делать.
+COLUMN_NAMES = {
+ 'id': "string PRIMARY KEY",
+ 'url': 'string',
+ 'pub_date': 'integer',
+ 'fetch_time': 'integer',
+ 'text': 'string', 
+ 'first_fetch_time': 'integer'}
 
-class DB():
-  def __init__(self, name: str = ""):
-      if len(name):
-        self.t_name = name
-        self.create_table(name)
+class DB:
+  def __init__(self, db_name: str = "", t_name: str = ""):
+      self.create_table(db_name, t_name)
+     
 
-  def create_table(self, name: str = ""):
-    self.sqliteConnection = sqlite3.connect(name)
+  def create_table(self,db_name: str,t_name: str ):
+    if not len(db_name):
+          raise ValueError("DataBase name cannot be empty")
+    if not len(t_name):
+        raise ValueError("Table name cannot be empty")
+        
+    self.t_name = t_name
+    self.db_name = db_name
+    #соединение с базой данных
+    self.sqliteConnection = sqlite3.connect(self.db_name)
     self.cursor = self.sqliteConnection.cursor()
-    self.cursor.execute(f'''CREATE TABLE IF NOT EXISTS {name}
-            (id string PRIMARY KEY,
-            url string,
-            pub_date integer,
-            fetch_time integer,
-            text string, 
-            first_fetch_time integer
-            )''')
+    #команда создания таблицы с указанными параметрами
+    command =f"CREATE TABLE IF NOT EXISTS {self.t_name} ({', '.join([el[0]+' '+el[1]  for el in COLUMN_NAMES.items()])} )"
+    self.cursor.execute(command)
     
-
 
   def is_exist(self,id):
-    
     self.cursor.execute(f"SELECT * FROM {self.t_name} WHERE id = ?", (id,))
     data=self.cursor.fetchone()
     if data is None:
@@ -33,26 +42,31 @@ class DB():
     return True
 
 
-
-
   def insert(self, data):
-    data = tuple([data[0]+str(data[2]),data[0],data[1],data[2],data[3],data[4]])
-    if self.is_exist(data[0]):
-      return
-    # Вставка данных в базу данных
-    self.cursor.execute(f"INSERT INTO {self.t_name} (id, url, pub_date, fetch_time, text, first_fetch_time)"
-          f" VALUES (?,?,?,?,?,?)",
-          data)
-    # return True
+    #формирование знаков вопроса для записи в БД
+    str_q_marks = ('?,'*(len(data)))[:-1:]
+    str_q_marks = "("+str_q_marks+")"
     
+    if self.is_exist(data[0]):
+      return False
+
+    # Вставка данных в базу данных
+    self.cursor.execute(f"INSERT INTO {self.t_name} ({', '.join([el[0] for el in COLUMN_NAMES.items()])})"
+          f" VALUES {str_q_marks}",
+          data)
+    return True
+    
+
   def commit(self):
     self.sqliteConnection.commit()
+
+
   def close(self):
     self.sqliteConnection.close()
+    
 
   def select_everything(self):
     self.cursor.execute(f"SELECT * FROM {self.t_name}")
-    
     print('\nСодержимое БД:')
     for row in self.cursor.fetchall():
         print(row)
