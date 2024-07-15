@@ -87,7 +87,11 @@ class TestDatabase(unittest.TestCase):
         rows = self.db.cursor.fetchall()
         self.assertEqual(len(rows), 4)
         self.assertEqual(rows[2][3], 160)
-      
+
+
+
+    #Тесты на обработку ошибок
+    
     def test_empty_url(self):
         with self.assertRaises(ValueError) as context:
             self.processor.process(TDocument(url="", pub_date=100, fetch_time=150, text="Version 1"))
